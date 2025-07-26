@@ -130,7 +130,7 @@ class CookingToolkit(BaseToolkit):
             
             return {
                 "success": True,
-                "message": f"成功拾取 {ingredient_name}",
+                "message": f"✅ {robot_id} 成功拾取原料 {ingredient_name}，位置: {ingredient_pos}",
                 "action": "pick",
                 "ingredient": ingredient_name,
                 "position": ingredient_pos,
@@ -218,7 +218,7 @@ class CookingToolkit(BaseToolkit):
             
             return {
                 "success": True,
-                "message": f"成功切割 {ingredient_name}",
+                "message": f"✅ {robot_id} 成功切割原料 {ingredient_name}，准备完成",
                 "action": "slice",
                 "ingredient": ingredient_name,
                 "position": cutting_board_pos,
@@ -321,7 +321,7 @@ class CookingToolkit(BaseToolkit):
             
             return {
                 "success": True,
-                "message": f"成功烹饪 {dish_name}",
+                "message": f"✅ {robot_id} 成功烹饪菜品 {dish_name}，烹饪完成",
                 "action": "cook",
                 "dish": dish_name,
                 "position": stove_pos,
@@ -404,7 +404,7 @@ class CookingToolkit(BaseToolkit):
             
             return {
                 "success": True,
-                "message": f"成功交付 {dish_name}",
+                "message": f"✅ {robot_id} 成功交付菜品 {dish_name}，服务完成",
                 "action": "serve",
                 "dish": dish_name,
                 "position": serve_pos,
@@ -518,7 +518,7 @@ class CookingToolkit(BaseToolkit):
             
             return {
                 "success": True,
-                "message": f"成功设置 {robot_id} 灯光为 {color}",
+                "message": f"✅ {robot_id} 成功设置灯光颜色为 {color}，状态更新完成",
                 "robot_id": robot_id,
                 "cube_id": cube_id,
                 "color": color

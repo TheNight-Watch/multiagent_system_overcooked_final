@@ -42,8 +42,16 @@ class SharedKitchenState:
         # 菜品状态：步骤列表 + 完成列表
         self.dishes = {}
         
-        # 可用任务：简单描述
+        # 可用任务：简单描述（保持向后兼容）
         self.available_tasks = []
+        
+        # ==================== 新增：任务队列系统 ====================
+        # 任务队列：支持依赖关系的任务管理
+        self.task_queue = []  # 任务队列
+        self.task_dependencies = {}  # 依赖关系图 {task_id: [dependency_ids]}
+        self.completed_tasks = set()  # 已完成任务ID集合
+        self.in_progress_tasks = {}  # 正在执行的任务 {task_id: agent_id}
+        self.task_counter = 0  # 任务ID计数器
         
         # 初始化默认的西红柿炒蛋任务
         self._initialize_default_dish()
@@ -406,3 +414,263 @@ class SharedKitchenState:
             count = len(self._toio_callbacks)
             self._toio_callbacks.clear()
             print(f"🧹 清除了 {count} 个 toio 回调")
+    
+    # ==================== 任务队列管理系统 ====================
+    
+    def add_cooking_tasks(self, dish_name: str, task_list: List[Dict[str, Any]]) -> None:
+        """
+        添加烹饪任务到队列，建立依赖关系
+        
+        Args:
+            dish_name: 菜品名称
+            task_list: 任务列表，每个任务包含type, params, dependencies等
+        """
+        print(f"📋 添加 {dish_name} 的任务到队列 ({len(task_list)} 个任务)")
+        
+        # 清空之前的任务（如果需要重新开始）
+        self.task_queue.clear()
+        self.task_dependencies.clear()
+        self.completed_tasks.clear()
+        self.in_progress_tasks.clear()
+        self.task_counter = 0
+        
+        # 添加每个任务到队列
+        for task_info in task_list:
+            self.task_counter += 1
+            task_id = f"task_{self.task_counter}_{task_info['type']}"
+            
+            # 创建标准化的任务对象
+            task = {
+                "id": task_id,
+                "type": task_info['type'],
+                "params": task_info['params'],
+                "dependencies": task_info.get('dependencies', []),
+                "status": "pending",
+                "assigned_to": None,
+                "dish_name": dish_name,
+                "created_time": datetime.now().isoformat()
+            }
+            
+            self.task_queue.append(task)
+            self.task_dependencies[task_id] = task_info.get('dependencies', [])
+            
+            deps_str = f" (依赖: {task['dependencies']})" if task['dependencies'] else ""
+            print(f"  + {task_id}: {task['type']}({', '.join(map(str, task['params']))}){deps_str}")
+        
+        print(f"✅ 任务队列初始化完成，共 {len(self.task_queue)} 个任务")
+    
+    def get_next_available_task(self, agent_id: str) -> Optional[Dict[str, Any]]:
+        """
+        获取该agent可执行的下一个任务（无依赖或依赖已完成）
+        
+        Args:
+            agent_id: 请求任务的agent ID
+            
+        Returns:
+            可执行的任务，如果没有则返回None
+        """
+        for task in self.task_queue:
+            # 检查任务状态
+            if task['status'] != 'pending':
+                continue
+            
+            # 检查是否分配给该agent（如果有指定）
+            if len(task['params']) > 0 and task['params'][0] != agent_id:
+                continue
+            
+            # 检查依赖关系是否满足
+            if self.check_dependencies_satisfied(task):
+                return task
+        
+        return None
+    
+    def start_task_execution(self, task_id: str, agent_id: str) -> bool:
+        """
+        开始执行任务，更新状态为in_progress
+        
+        Args:
+            task_id: 任务ID
+            agent_id: 执行任务的agent ID
+            
+        Returns:
+            是否成功开始任务
+        """
+        # 查找任务
+        task = self._find_task_by_id(task_id)
+        if not task:
+            print(f"❌ 任务 {task_id} 不存在")
+            return False
+        
+        # 检查任务状态
+        if task['status'] != 'pending':
+            print(f"❌ 任务 {task_id} 状态不是pending: {task['status']}")
+            return False
+        
+        # 检查依赖关系
+        if not self.check_dependencies_satisfied(task):
+            print(f"❌ 任务 {task_id} 的依赖关系未满足")
+            return False
+        
+        # 更新任务状态
+        task['status'] = 'in_progress'
+        task['assigned_to'] = agent_id
+        self.in_progress_tasks[task_id] = agent_id
+        
+        print(f"🚀 {agent_id} 开始执行任务 {task_id}: {task['type']}")
+        return True
+    
+    def complete_task_execution(self, task_id: str, agent_id: str) -> bool:
+        """
+        完成任务执行，检查并解锁依赖此任务的其他任务
+        
+        Args:
+            task_id: 任务ID  
+            agent_id: 执行任务的agent ID
+            
+        Returns:
+            是否成功完成任务
+        """
+        # 查找任务
+        task = self._find_task_by_id(task_id)
+        if not task:
+            print(f"❌ 任务 {task_id} 不存在")
+            return False
+        
+        # 检查任务状态和执行者
+        if task['status'] != 'in_progress':
+            print(f"❌ 任务 {task_id} 状态不是in_progress: {task['status']}")
+            return False
+        
+        if task['assigned_to'] != agent_id:
+            print(f"❌ 任务 {task_id} 不是由 {agent_id} 执行的")
+            return False
+        
+        # 更新任务状态
+        task['status'] = 'completed'
+        self.completed_tasks.add(task_id)
+        if task_id in self.in_progress_tasks:
+            del self.in_progress_tasks[task_id]
+        
+        print(f"✅ {agent_id} 完成任务 {task_id}: {task['type']}")
+        
+        # 检查是否有其他任务的依赖关系被解锁
+        unlocked_count = 0
+        for other_task in self.task_queue:
+            if (other_task['status'] == 'pending' and 
+                task_id in other_task['dependencies'] and 
+                self.check_dependencies_satisfied(other_task)):
+                unlocked_count += 1
+        
+        if unlocked_count > 0:
+            print(f"🔓 完成 {task_id} 解锁了 {unlocked_count} 个后续任务")
+        
+        return True
+    
+    def check_dependencies_satisfied(self, task: Dict[str, Any]) -> bool:
+        """
+        检查任务依赖是否都已完成
+        
+        Args:
+            task: 任务对象
+            
+        Returns:
+            依赖是否全部满足
+        """
+        if not task['dependencies']:
+            return True
+        
+        for dep_id in task['dependencies']:
+            if dep_id not in self.completed_tasks:
+                return False
+        
+        return True
+    
+    def get_task_queue_summary(self) -> str:
+        """获取任务队列状态摘要"""
+        summary = f"📋 任务队列状态摘要:\n"
+        
+        pending_tasks = [t for t in self.task_queue if t['status'] == 'pending']
+        in_progress_tasks = [t for t in self.task_queue if t['status'] == 'in_progress'] 
+        completed_tasks = [t for t in self.task_queue if t['status'] == 'completed']
+        
+        summary += f"\n📊 统计信息:\n"
+        summary += f"  总任务数: {len(self.task_queue)}\n"
+        summary += f"  待执行: {len(pending_tasks)}\n"
+        summary += f"  执行中: {len(in_progress_tasks)}\n"
+        summary += f"  已完成: {len(completed_tasks)}\n"
+        
+        if pending_tasks:
+            summary += f"\n⏳ 待执行任务:\n"
+            for task in pending_tasks:
+                deps_satisfied = "✅" if self.check_dependencies_satisfied(task) else "❌"
+                deps_str = f" (依赖: {task['dependencies']})" if task['dependencies'] else ""
+                summary += f"  {deps_satisfied} {task['id']}: {task['type']}({', '.join(map(str, task['params']))}){deps_str}\n"
+        
+        if in_progress_tasks:
+            summary += f"\n🔄 执行中任务:\n"
+            for task in in_progress_tasks:
+                summary += f"  🚀 {task['id']}: {task['type']} (执行者: {task['assigned_to']})\n"
+        
+        if completed_tasks:
+            summary += f"\n✅ 已完成任务:\n"
+            for task in completed_tasks:
+                summary += f"  ✓ {task['id']}: {task['type']}\n"
+        
+        return summary
+    
+    def is_task_already_done(self, task_type: str, params: List[Any]) -> bool:
+        """
+        检查指定类型和参数的任务是否已经完成
+        
+        Args:
+            task_type: 任务类型 (如 "pick_x")
+            params: 任务参数 (如 ["chef_1", "vegetables"])
+            
+        Returns:
+            是否已经有相同的任务完成
+        """
+        for task in self.task_queue:
+            if (task['type'] == task_type and 
+                task['params'] == params and 
+                task['status'] == 'completed'):
+                return True
+        return False
+    
+    def get_available_tasks_for_agent(self, agent_id: str) -> List[Dict[str, Any]]:
+        """
+        获取指定agent可以执行的所有可用任务
+        
+        Args:
+            agent_id: agent ID
+            
+        Returns:
+            可执行任务列表
+        """
+        available = []
+        for task in self.task_queue:
+            if (task['status'] == 'pending' and
+                len(task['params']) > 0 and 
+                task['params'][0] == agent_id and
+                self.check_dependencies_satisfied(task)):
+                available.append(task)
+        return available
+    
+    def _find_task_by_id(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """根据ID查找任务"""
+        for task in self.task_queue:
+            if task['id'] == task_id:
+                return task
+        return None
+    
+    def is_all_tasks_completed(self) -> bool:
+        """检查是否所有任务都已完成"""
+        return all(task['status'] == 'completed' for task in self.task_queue)
+    
+    def reset_task_queue(self):
+        """重置任务队列（用于新的烹饪任务）"""
+        self.task_queue.clear()
+        self.task_dependencies.clear()
+        self.completed_tasks.clear()
+        self.in_progress_tasks.clear()
+        self.task_counter = 0
+        print("🔄 任务队列已重置")

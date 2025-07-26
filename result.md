@@ -1,209 +1,121 @@
-((venv) ) liuhaifeng@MacBook-Air-6 multiagent7_26_last % python main.py '宫保鸡丁'  
+((venv) ) liuhaifeng@MacBook-Air-6 multiagent7_26_last % python main.py '炝炒西兰花'
 ✅ 真实toio控制器导入成功
 🍳 CamelAI 动态多智能体 Overcooked 系统
-📋 处理订单: 宫保鸡丁
+📋 处理订单: 炝炒西兰花
 ============================================================
 🤖 启动动态多智能体协作系统...
-📋 处理订单: 宫保鸡丁
+📋 处理订单: 炝炒西兰花
 🔍 正在连接真实toio设备...
 Scanning for 3 toio cubes...
-2025-07-27 05:40:50,581 - ToioPyLogger.toio.device_interface.ble - DEBUG - scanner: timeout 15.0 sec
+2025-07-27 06:01:40,610 - ToioPyLogger.toio.device_interface.ble - DEBUG - scanner: timeout 15.0 sec
 Connected to cube: cube_1
 Connected to cube: cube_2
 Connected to cube: cube_3
 ✅ 成功连接到真实toio设备
 🍳 烹饪工具包初始化完成 - 基于真实ToioController API
-2025-07-27 05:40:52,421 - camel.camel.societies.workforce.workforce - WARNING - No coordinator_agent provided. Using default ChatAgent settings (ModelPlatformType.DEFAULT, ModelType.DEFAULT) with default system message.
-2025-07-27 05:40:52,553 - camel.camel.societies.workforce.workforce - WARNING - No task_agent provided. Using default ChatAgent settings (ModelPlatformType.DEFAULT, ModelType.DEFAULT) with default system message and TaskPlanningToolkit.
+2025-07-27 06:01:42,087 - camel.camel.societies.workforce.workforce - WARNING - No coordinator_agent provided. Using default ChatAgent settings (ModelPlatformType.DEFAULT, ModelType.DEFAULT) with default system message.
+2025-07-27 06:01:42,276 - camel.camel.societies.workforce.workforce - WARNING - No task_agent provided. Using default ChatAgent settings (ModelPlatformType.DEFAULT, ModelType.DEFAULT) with default system message and TaskPlanningToolkit.
 🔄 多智能体协作分析中...
    - Order Manager: 动态分析菜品需求
    - Chef_1 (通用厨师): 使用工具执行烹饪任务
    - Chef_2 (通用厨师): 使用工具执行烹饪任务
    - Chef_3 (通用厨师): 使用工具执行烹饪任务
-🤖 开始多智能体协作制作: 宫保鸡丁
-🧠 动态分析菜品需求: 宫保鸡丁
-Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务) get task dish_analysis_宫保鸡丁_1753566052.0: Chef_1: pick ingredients for 宫保鸡丁
-Worker node chef_2 (Chef_2 (通用厨师)：使用工具执行烹饪任务) get task dish_analysis_宫保鸡丁_1753566052.1: Chef_2: pick seasonings for 宫保鸡丁
-🥬 chef_2: 开始拾取原料 'seasonings'
-🚶 chef_2: 移动到原料位置 (188, 70)
-✋ chef_2: 拾取 seasonings
-🤖 chef_2 移动到位置 (188, 70)，执行动作: picked_seasonings
-🥬 chef_1: 开始拾取原料 'meat'
-🚶 chef_1: 移动到原料位置 (270, 70)
-✋ chef_1: 拾取 meat
-🤖 chef_1 移动到位置 (270, 70)，执行动作: picked_meat
-🥬 chef_1: 开始拾取原料 'vegetables'
-🚶 chef_1: 移动到原料位置 (229, 70)
-✋ chef_1: 拾取 vegetables
-🤖 chef_1 移动到位置 (229, 70)，执行动作: picked_vegetables
-🥬 chef_1: 开始拾取原料 'seasonings'
-🚶 chef_1: 移动到原料位置 (188, 70)
-✋ chef_1: 拾取 seasonings
-🤖 chef_1 移动到位置 (188, 70)，执行动作: picked_seasonings
-======
-Reply from Worker node chef_2 (Chef_2 (通用厨师)：使用工具执行烹饪任务):
+🤖 开始任务队列协作制作: 炝炒西兰花
+📋 生成带依赖关系的任务队列...
+📋 添加 炝炒西兰花 的任务到队列 (4 个任务)
+  + task_1_pick_x: pick_x(chef_1, vegetables)
+  + task_2_pick_x: pick_x(chef_2, seasonings)
+  + task_3_cook_x: cook_x(chef_3, 炝炒西兰花) (依赖: ['task_1_pick_x', 'task_2_pick_x'])
+  + task_4_serve_x: serve_x(chef_1, 炝炒西兰花) (依赖: ['task_3_cook_x'])
+✅ 任务队列初始化完成，共 4 个任务
+📋 任务队列状态摘要:
 
-成功拾取 seasonings 用于宫保鸡丁。
-======
-🎯 Task dish_analysis_宫保鸡丁_1753566052.1 completed successfully.
+📊 统计信息:
+  总任务数: 4
+  待执行: 4
+  执行中: 0
+  已完成: 0
+
+⏳ 待执行任务:
+  ✅ task_1_pick_x: pick_x(chef_1, vegetables)
+  ✅ task_2_pick_x: pick_x(chef_2, seasonings)
+  ❌ task_3_cook_x: cook_x(chef_3, 炝炒西兰花) (依赖: ['task_1_pick_x', 'task_2_pick_x'])
+  ❌ task_4_serve_x: serve_x(chef_1, 炝炒西兰花) (依赖: ['task_3_cook_x'])
+
+🚀 开始执行任务队列...
+
+=== 执行步骤 1 ===
+🎯 chef_1 获得任务: pick_x(chef_1, vegetables)
+🚀 chef_1 开始执行任务 task_1_pick_x: pick_x
+Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0: chef_1: Execute the pick_x operation to pick the specified vegetables.
 ======
 Reply from Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务):
 
-成功拾取宫保鸡丁所需食材：meat、vegetables和seasonings。
+I need to know the specific vegetables to pick in order to execute the pick_x operation.
 ======
-🎯 Task dish_analysis_宫保鸡丁_1753566052.0 completed successfully.
-Worker node chef_3 (Chef_3 (通用厨师)：使用工具执行烹饪任务) get task dish_analysis_宫保鸡丁_1753566052.2: Chef_3: cook 宫保鸡丁 using the picked ingredients and seasonings
-🍳 chef_3: 开始烹饪菜品 '宫保鸡丁'
-🚶 chef_3: 移动到灶台位置 (188, 274)
-🔥 chef_3: 烹饪 宫保鸡丁
-  烹饪进度: 25%
-  🔥 点火加热...
-  烹饪进度: 50%
-  🥄 翻炒中...
-  烹饪进度: 75%
-  🧂 调味中...
-  烹饪进度: 100%
-  ✨ 即将完成...
-✅ chef_3: 宫保鸡丁 烹饪完成!
-🤖 chef_3 移动到位置 (188, 274)，执行动作: cooked_宫保鸡丁
+Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0.0: chef_1: Execute the pick_x operation to pick the specified vegetables assigned to chef_1.
+Worker node chef_2 (Chef_2 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0.1: chef_2: Execute the pick_x operation to pick the specified vegetables assigned to chef_2.
+Worker node chef_3 (Chef_3 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0.2: chef_3: Execute the pick_x operation to pick the specified vegetables assigned to chef_3.
+======
+Reply from Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务):
+
+I could not perform the pick_x operation due to missing information about the specific vegetables to pick.
+======
+Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0.0.0: Identify the specific vegetables assigned to chef_1 to pick.
+======
+Reply from Worker node chef_2 (Chef_2 (通用厨师)：使用工具执行烹饪任务):
+
+I could not execute the pick_x operation because the specific vegetables to pick were not provided.
+======
 ======
 Reply from Worker node chef_3 (Chef_3 (通用厨师)：使用工具执行烹饪任务):
 
-成功烹饪 宫保鸡丁。
+I could not perform the pick_x operation because the specific vegetables to pick were not provided.
 ======
-🎯 Task dish_analysis_宫保鸡丁_1753566052.2 completed successfully.
-Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务) get task dish_analysis_宫保鸡丁_1753566052.3: Chef_1: serve 宫保鸡丁
-🍽️ chef_1: 开始交付菜品 '宫保鸡丁'
-🚶 chef_1: 移动到交付窗口 (352, 70)
-🎯 chef_1: 交付 宫保鸡丁
-  📋 检查菜品质量...
-  🍽️ 小心放置到交付窗口...
-  ✅ 交付完成，等待顾客取餐...
-🤖 chef_1 移动到位置 (352, 70)，执行动作: served_宫保鸡丁
+Worker node chef_2 (Chef_2 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0.1.0: Identify the specific vegetables assigned to chef_2 for picking.
+Worker node chef_3 (Chef_3 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0.2.0: Identify the specific vegetables to pick assigned to chef_3.
 ======
 Reply from Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务):
 
-成功交付 宫保鸡丁。
+There is no information provided about the specific vegetables assigned to chef_1 to pick.
 ======
-🎯 Task dish_analysis_宫保鸡丁_1753566052.3 completed successfully.
-📋 菜品需求分析完成:
---- Subtask dish_analysis_宫保鸡丁_1753566052.0 Result ---
-成功拾取宫保鸡丁所需食材：meat、vegetables和seasonings。
+/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/toolkits/function_tool.py:533: UserWarning: Parameter description is missing for the function 'search_linkup'. The parameter definition is {'enum': ['searchResults', 'sourcedAnswer', 'structured'], 'type': ['string', 'null']}. This may affect the quality of tool calling.
+  warnings.warn(
+/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/toolkits/function_tool.py:533: UserWarning: Parameter description is missing for the function 'search_alibaba_tongxiao'. The parameter definition is {'enum': ['OneDay', 'OneWeek', 'OneMonth', 'OneYear', 'NoLimit'], 'type': ['string', 'null']}. This may affect the quality of tool calling.
+  warnings.warn(
+/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/toolkits/function_tool.py:533: UserWarning: Parameter description is missing for the function 'search_alibaba_tongxiao'. The parameter definition is {'anyOf': [{'enum': ['finance', 'law', 'medical', 'internet', 'tax', 'news_province', 'news_center'], 'type': 'string'}, {'type': 'null'}], 'type': ['null']}. This may affect the quality of tool calling.
+  warnings.warn(
+Worker node 4e431470-0a8e-4e54-b667-0ee5d766dbc7 (Specialist worker node dedicated to identifying and specifying the precise vegetables required for picking tasks, ensuring clear instructions for pick operations without overlapping general chef roles.) created.
+Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0.0.1: Execute the pick_x operation to pick the identified vegetables assigned to chef_1.
+======
+Reply from Worker node chef_3 (Chef_3 (通用厨师)：使用工具执行烹饪任务):
 
---- Subtask dish_analysis_宫保鸡丁_1753566052.1 Result ---
-成功拾取 seasonings 用于宫保鸡丁。
-
---- Subtask dish_analysis_宫保鸡丁_1753566052.2 Result ---
-成功烹饪 宫保鸡丁。
-
---- Subtask dish_analysis_宫保鸡丁_1753566052.3 Result ---
-成功交付 宫保鸡丁。
-🚀 开始多智能体协作执行...
-Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务) get task collaborative_cooking_宫保鸡丁_1753566100.0: Chef_1: 拾取宫保鸡丁所需食材：meat、vegetables和seasonings。
-Worker node chef_2 (Chef_2 (通用厨师)：使用工具执行烹饪任务) get task collaborative_cooking_宫保鸡丁_1753566100.1: Chef_2: 拾取 seasonings 用于宫保鸡丁。
-🥬 chef_2: 开始拾取原料 'seasonings'
-🚶 chef_2: 移动到原料位置 (188, 70)
-✋ chef_2: 拾取 seasonings
-🤖 chef_2 移动到位置 (188, 70)，执行动作: picked_seasonings
-🥬 chef_1: 开始拾取原料 'meat'
-🚶 chef_1: 移动到原料位置 (270, 70)
-✋ chef_1: 拾取 meat
-🤖 chef_1 移动到位置 (270, 70)，执行动作: picked_meat
-🥬 chef_1: 开始拾取原料 'vegetables'
-🚶 chef_1: 移动到原料位置 (229, 70)
-✋ chef_1: 拾取 vegetables
-🤖 chef_1 移动到位置 (229, 70)，执行动作: picked_vegetables
-🥬 chef_1: 开始拾取原料 'seasonings'
-🚶 chef_1: 移动到原料位置 (188, 70)
-✋ chef_1: 拾取 seasonings
-🤖 chef_1 移动到位置 (188, 70)，执行动作: picked_seasonings
+I could not identify the specific vegetables to pick assigned to chef_3 due to missing information.
+======
 ======
 Reply from Worker node chef_2 (Chef_2 (通用厨师)：使用工具执行烹饪任务):
 
-成功拾取 seasonings 用于宫保鸡丁。
+The specific vegetables assigned to chef_2 for picking were not provided in the available information.
 ======
-🎯 Task collaborative_cooking_宫保鸡丁_1753566100.1 completed successfully.
+Worker node 45f66885-8d51-4bae-b82d-eba2da516248 (Worker node specialized in analyzing and assigning specific vegetable picking tasks to chefs, ensuring clear vegetable-to-chef assignments distinct from general cooking or picking operations.) created.
+Worker node 1a5a0dc2-8e97-428e-b8b2-cb7fac7a30b2 (Consultant worker node focused on the identification and clarification of specific vegetables for picking tasks, providing detailed information to enable precise picking without overlapping existing chef or assignment analyst roles.) created.
+Worker node chef_2 (Chef_2 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0.1.1: Execute the pick_x operation to pick the identified vegetables assigned to chef_2.
+Worker node chef_3 (Chef_3 (通用厨师)：使用工具执行烹饪任务) get task execute_task_1_pick_x_1753567302.0.2.1: Perform the pick_x operation to pick the identified vegetables assigned to chef_3.
 ======
 Reply from Worker node chef_1 (Chef_1 (通用厨师)：使用工具执行烹饪任务):
 
-成功拾取宫保鸡丁所需食材：meat、vegetables和seasonings。
+I could not perform the pick_x operation due to missing information about the specific vegetables assigned to chef_1 to pick.
 ======
-🎯 Task collaborative_cooking_宫保鸡丁_1753566100.0 completed successfully.
-Worker node chef_3 (Chef_3 (通用厨师)：使用工具执行烹饪任务) get task collaborative_cooking_宫保鸡丁_1753566100.2: Chef_3: 烹饪 宫保鸡丁。
-🍳 chef_3: 开始烹饪菜品 '宫保鸡丁'
-🚶 chef_3: 移动到灶台位置 (188, 274)
-🔥 chef_3: 烹饪 宫保鸡丁
-  烹饪进度: 25%
-  🔥 点火加热...
-  烹饪进度: 50%
-  🥄 翻炒中...
-  烹饪进度: 75%
-  🧂 调味中...
-  烹饪进度: 100%
-  ✨ 即将完成...
-✅ chef_3: 宫保鸡丁 烹饪完成!
-🤖 chef_3 移动到位置 (188, 274)，执行动作: cooked_宫保鸡丁
-🍽️ chef_3: 开始交付菜品 '宫保鸡丁'
-🚶 chef_3: 移动到交付窗口 (352, 70)
-🎯 chef_3: 交付 宫保鸡丁
-  📋 检查菜品质量...
-  🍽️ 小心放置到交付窗口...
-  ✅ 交付完成，等待顾客取餐...
-🤖 chef_3 移动到位置 (352, 70)，执行动作: served_宫保鸡丁
-^CTraceback (most recent call last):
-  File "/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/societies/workforce/workforce.py", line 930, in process_task
-    current_loop = asyncio.get_running_loop()
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
-RuntimeError: no running event loop
+Worker node 1bc2baf8-c4a4-4d2a-a790-a911ca72188b (Worker node specialized in executing pick_x operations to pick specific vegetables as assigned, distinct from roles involved in identifying or assigning vegetables for picking.) created.
+======
+Reply from Worker node chef_3 (Chef_3 (通用厨师)：使用工具执行烹饪任务):
 
-During handling of the above exception, another exception occurred:
+I could not perform the pick_x operation because the specific vegetables to pick assigned to chef_3 were not provided.
+======
+======
+Reply from Worker node chef_2 (Chef_2 (通用厨师)：使用工具执行烹饪任务):
 
-Traceback (most recent call last):
-  File "/opt/homebrew/Cellar/python@3.12/3.12.11/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/homebrew/Cellar/python@3.12/3.12.11/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
-    return future.result()
-           ^^^^^^^^^^^^^^^
-  File "/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/societies/workforce/workforce.py", line 891, in process_task_async
-    await self.start()
-  File "/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/societies/workforce/workforce.py", line 2081, in start
-    await self._listen_to_channel()
-  File "/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/societies/workforce/workforce.py", line 1999, in _listen_to_channel
-    returned_task = await self._get_returned_task()
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/societies/workforce/workforce.py", line 1633, in _get_returned_task
-    return await asyncio.wait_for(
-           ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/homebrew/Cellar/python@3.12/3.12.11/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
-    return await fut
-           ^^^^^^^^^
-  File "/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/societies/workforce/task_channel.py", line 100, in get_returned_task_by_publisher
-    await self._condition.wait()
-  File "/opt/homebrew/Cellar/python@3.12/3.12.11/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/locks.py", line 266, in wait
-    await fut
-asyncio.exceptions.CancelledError
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/Users/liuhaifeng/multiagent7_26_last/main.py", line 398, in <module>
-    main()
-  File "/Users/liuhaifeng/multiagent7_26_last/main.py", line 375, in main
-    actions_json = process_dish_order(dish_name)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/liuhaifeng/multiagent7_26_last/main.py", line 329, in process_dish_order
-    actions = cooking_system.execute_collaborative_cooking(dish_name)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/liuhaifeng/multiagent7_26_last/main.py", line 177, in execute_collaborative_cooking
-    self.workforce.process_task(collaboration_task)
-  File "/Users/liuhaifeng/multiagent7_26_last/venv/lib/python3.12/site-packages/camel/societies/workforce/workforce.py", line 960, in process_task
-    return asyncio.run(self.process_task_async(task))
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/homebrew/Cellar/python@3.12/3.12.11/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
-    return runner.run(main)
-           ^^^^^^^^^^^^^^^^
-  File "/opt/homebrew/Cellar/python@3.12/3.12.11/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 123, in run
-    raise KeyboardInterrupt()
-KeyboardInterrupt
-zsh: trace trap  python main.py '宫保鸡丁'
+I could not execute the pick_x operation because the specific vegetables to pick assigned to chef_2 were not provided.
+======
+Worker node 97fcb66b-860b-4471-8c95-1963c88b3767 (Specialized worker node dedicated to performing vegetable picking operations as instructed, focusing solely on the execution of picking tasks without involvement in vegetable identification or assignment.) created.
+^CWorker node 1bf6ddff-8a2a-4ccc-8a5b-b913c15b9092 (Worker node dedicated to performing precise vegetable picking operations as assigned, ensuring accurate execution of pick_x tasks without overlapping identification or assignment responsibilities.) created.
