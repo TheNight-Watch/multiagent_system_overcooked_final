@@ -94,22 +94,21 @@ class DynamicCookingSystem:
         # 创建动态分析任务
         analysis_task = Task(
             content=f"""
-            请分析菜品 "{dish_name}" 的制作需求：
+            请为菜品 "{dish_name}" 分配任务，参考案例模板：
             
-            1. 需要哪些主要原料？
-            2. 需要哪些关键制作步骤？
-            3. 哪些步骤可以并行执行？
-            4. 每个步骤大概需要多长时间？
-            5. 哪个厨师位置最适合执行哪些步骤？
+            **炝炒西兰花模板**：
+            - Chef_1: pick_x(chef_1, vegetables) # 取西兰花  
+            - Chef_2: pick_x(chef_2, seasonings) # 取调料
+            - Chef_3: cook_x(chef_3, 炝炒西兰花) # 烹饪
+            - Chef_1: serve_x(chef_1, 炝炒西兰花) # 交付
             
-            厨师信息：
-            - chef_1: 通用厨师，可执行任何烹饪任务
-            - chef_2: 通用厨师，可执行任何烹饪任务
-            - chef_3: 通用厨师，可执行任何烹饪任务
+            按此模板为 "{dish_name}" 分配任务：
+            1. 两个厨师并行取料
+            2. 一个厨师专门烹饪  
+            3. 一个厨师负责交付
+            4. 简化步骤，避免复杂操作
             
-            请提供详细的制作分析和任务分配建议。
-            
-            重要：输出信息尽可能简洁高效，不要输出冗余信息。
+            输出格式：简洁的任务分配方案
             """,
             id=f"dish_analysis_{dish_name}_{int(time.time())}"
         )
@@ -137,55 +136,33 @@ class DynamicCookingSystem:
         # 第二步：创建协作任务
         collaboration_task = Task(
             content=f"""
-            现在开始制作 "{dish_name}"。
-            
-            基于之前的分析结果：
+            制作 "{dish_name}" - 按分析结果执行
+
+            **分工方案**：
             {requirements['analysis']}
             
-            当前厨房状态：
-            {self.kitchen_state.get_summary()}
+            🔧 **执行指南**：
+            - 使用工具：pick_x, cook_x, serve_x（忽略slice_x简化流程）
+            - 原料映射：具体食材→5种基础分类（vegetables, meat, eggs, rice, seasonings）
+            - 第一个参数必须是你的机器人ID（chef_1, chef_2, chef_3）
             
-            请各位厨师协作完成这道菜：
+            📍 **toio坐标系统**：
+            - 储藏区: (229,70) (270,70) (188,70) (311,70) (355,70) - 取料区域
+            - 烹饪区: (188,274) - 烹饪专用
+            - 交付区: (352,70) - 交付专用
             
-            🔧 可用工具（每位厨师都有）：
-            - pick_x(robot_id, ingredient) - 拾取原料
-            - slice_x(robot_id, ingredient) - 切割原料
-            - cook_x(robot_id, dish) - 烹饪菜品
-            - serve_x(robot_id, dish) - 交付菜品
-            - check_robot_status(robot_id) - 检查机器人状态
-
-            🥘 重要：智能原料映射规则
-            厨房环境只提供5种基础原料分类，你们必须智能映射具体食材需求：
-            - 所有蔬菜（西红柿、西兰花、大蒜、辣椒、洋葱等）→ "vegetables"
-            - 所有肉类（鸡肉、猪肉、牛肉等）→ "meat"  
-            - 鸡蛋 → "eggs"
-            - 米饭 → "rice"
-            - 所有调料（盐、油、酱油、醋、糖、胡椒等）→ "seasonings"
+            👥 **三厨师协作**：
+            - Chef_1: 按分工方案执行任务
+            - Chef_2: 按分工方案执行任务
+            - Chef_3: 按分工方案执行任务
             
-            ⚠️ 关键约束：
-            1. 只能使用这5种分类作为ingredient参数：vegetables, meat, eggs, rice, seasonings
-            2. 将具体食材需求映射到对应分类（西兰花=vegetables, 鸡肉=meat）
-            3. 无法映射的食材则省略相关步骤
+            🎯 **执行要求**：
+            1. 严格按照分工方案顺序执行
+            2. 必须调用实际工具函数
+            3. 等待前置任务完成后再执行后续任务
+            4. 输出简洁，重点是工具调用
             
-            📍 厨房布局：
-            - 储藏区 (8,5)：所有原料存储位置
-            - 准备台 (1,5)：切菜专用区域
-            - 灶台区 (1,1)：烹饪专用区域
-            - 交付台 (5,1)：菜品交付位置
-            
-            👥 请各位通用厨师协作完成任务：
-            - Chef_1: 通用厨师，可执行任何烹饪任务
-            - Chef_2: 通用厨师，可执行任何烹饪任务  
-            - Chef_3: 通用厨师，可执行任何烹饪任务
-            
-            🎯 协作要求：
-            1. 每个厨师必须实际使用工具执行物理动作
-            2. 避免同时使用相同的工具或位置
-            3. 合理分工，提高效率
-            4. 实时沟通协调任务进度
-            5. 输出信息尽可能简洁高效，不要输出冗余信息
-            
-            请开始执行，记住一定要实际调用工具函数！
+            立即开始执行！
             """,
             additional_info={
                 "dish_name": dish_name,
