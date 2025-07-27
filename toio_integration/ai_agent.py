@@ -360,13 +360,14 @@ class ToioAIAgent:
             
         return self.get_position_name(cube_id)
     
-    def go_to(self, cube_id: str, location: str) -> bool:
+    def go_to(self, cube_id: str, location: str, safe_mode: bool = True) -> bool:
         """
         Move a cube to a named location
         
         Args:
             cube_id: ID of the cube to move
             location: Name of the location (e.g., "kitchen")
+            safe_mode: Whether to use collision avoidance (default: True)
             
         Returns:
             True if the move was successful, False otherwise
@@ -378,7 +379,10 @@ class ToioAIAgent:
         x, y = self.locations[location]
         print(f"Moving cube {cube_id} to {location} ({x}, {y})")
         
-        return self.controller.move_to(cube_id, x, y)
+        if safe_mode:
+            return self.controller.move_to_safe(cube_id, x, y)
+        else:
+            return self.controller.move_to_safe(cube_id, x, y)
     
     def set_light(self, cube_id: str, light: str) -> bool:
         """
