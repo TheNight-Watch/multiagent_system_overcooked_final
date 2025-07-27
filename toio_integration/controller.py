@@ -44,13 +44,14 @@ class ToioController:
     asyncio-based toio-py library.
     """
     
-    def __init__(self, num_cubes: int = 1, connect_timeout: float = 10.0):
+    def __init__(self, num_cubes: int = 1, connect_timeout: float = 10.0, enable_collision_avoidance: bool = True):
         """
         Initialize the controller and connect to the specified number of cubes.
         
         Args:
             num_cubes: Number of cubes to connect to
             connect_timeout: Timeout in seconds for the connection process
+            enable_collision_avoidance: Whether to enable collision avoidance system
         """
         self._cubes: Dict[str, CubeState] = {}
         self._event_loop = None
@@ -58,6 +59,12 @@ class ToioController:
         self._running = False
         self._position_callbacks = {}
         self._motor_callbacks = {}
+        
+        # 避障系统组件
+        self._collision_avoidance = None
+        self._position_tracker = None
+        self._path_planner = None
+        self._avoidance_enabled = enable_collision_avoidance
         
         # Start the background thread with async event loop
         self._start_background_loop()
@@ -70,6 +77,10 @@ class ToioController:
             print("Controller will continue in simulation mode.")
             # Create simulated cubes for testing without real hardware
             self._create_simulated_cubes(num_cubes)
+        
+        # 初始化避障系统
+        if self._avoidance_enabled:
+            self._setup_collision_avoidance()
         
     def _start_background_loop(self):
         """Start a background thread with an asyncio event loop"""
@@ -422,3 +433,183 @@ class ToioController:
             return None
         
         return cube_state.position
+    
+    # ==================== 避障系统集成 ====================
+    
+    def _setup_collision_avoidance(self):
+        """设置避障系统"""
+        try:
+            from .collision_avoidance import CollisionAvoidanceSystem
+            from .position_tracker import PositionTracker
+            from .path_planner import PathPlanner
+            
+            # 初始化避障系统组件
+            self._collision_avoidance = CollisionAvoidanceSystem(grid_size=10)
+            self._position_tracker = PositionTracker(self, update_interval=0.1)
+            self._path_planner = PathPlanner(self._collision_avoidance, self._position_tracker)
+            
+            # 添加位置更新回调
+            self._position_tracker.add_position_callback(self._on_position_update)
+            
+            # 启动追踪和规划系统
+            self._position_tracker.start_tracking()
+            self._path_planner.start_planner()
+            
+            print("🛡️ 避障系统已启用")
+            
+        except ImportError as e:
+            print(f"⚠️ 无法导入避障系统组件: {e}")
+            self._avoidance_enabled = False
+        except Exception as e:
+            print(f"❌ 避障系统初始化失败: {e}")
+            self._avoidance_enabled = False
+    
+    def _on_position_update(self, cube_id: str, x: int, y: int):
+        """位置更新回调，同步到避障系统"""
+        if self._collision_avoidance:
+            self._collision_avoidance.update_robot_position(cube_id, x, y)
+    
+    def safe_move_to(self, cube_id: str, x: int, y: int, angle: int = 0,
+                    movement_type: MovementType = MovementType.Linear) -> bool:
+        """
+        安全移动到指定位置（带避障）
+        
+        Args:
+            cube_id: 机器人ID
+            x: 目标X坐标
+            y: 目标Y坐标
+            angle: 目标角度
+            movement_type: 移动类型
+            
+        Returns:
+            是否成功启动移动
+        """
+        if not self._avoidance_enabled or not self._path_planner:
+            # 避障系统未启用，使用原始移动方法
+            return self.move_to(cube_id, x, y, angle, movement_type)
+        
+        # 获取当前位置
+        current_pos = self._position_tracker.get_current_position(cube_id)
+        if not current_pos:
+            print(f"⚠️ 无法获取 {cube_id} 的当前位置，使用直接移动")
+            return self.move_to(cube_id, x, y, angle, movement_type)
+        
+        # 检查目标位置是否安全
+        if not self._collision_avoidance.is_safe_to_move(cube_id, (x, y)):
+            print(f"⚠️ 目标位置 ({x}, {y}) 不安全，{cube_id} 无法移动")
+            return False
+        
+        # 请求路径规划用于冲突检测和解决
+        from .path_planner import PlanningPriority
+        success = self._path_planner.request_path(cube_id, current_pos, (x, y), PlanningPriority.NORMAL)
+        
+        if not success:
+            print(f"❌ 路径规划请求失败: {cube_id}")
+            return False
+        
+        # 等待短暂时间让路径规划器处理冲突
+        time.sleep(0.2)
+        
+        # 直接移动到目标位置，让toio自己处理路径
+        print(f"🗺️ {cube_id} 安全移动到目标: ({x}, {y})")
+        return self.move_to(cube_id, x, y, angle, movement_type)
+    
+    
+    def emergency_stop_all(self):
+        """紧急停止所有机器人"""
+        print("🚨 紧急停止所有机器人")
+        
+        # 停止路径规划
+        if self._path_planner:
+            self._path_planner.emergency_stop_all()
+        
+        # 停止所有cube的移动
+        for cube_id in self._cubes:
+            try:
+                self.stop_movement(cube_id)
+            except Exception as e:
+                print(f"❌ 停止 {cube_id} 失败: {e}")
+    
+    def stop_movement(self, cube_id: str):
+        """停止指定机器人的移动"""
+        cube_state = self._cubes.get(cube_id)
+        if not cube_state or not cube_state.connected:
+            return
+        
+        # 如果是模拟cube，直接返回
+        if cube_state.cube is None:
+            print(f"模拟停止 {cube_id}")
+            return
+        
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                self._async_stop_movement(cube_state.cube),
+                self._event_loop
+            )
+            future.result(timeout=1.0)
+            print(f"⏹️ {cube_id} 已停止移动")
+        except Exception as e:
+            print(f"❌ 停止 {cube_id} 移动失败: {e}")
+    
+    async def _async_stop_movement(self, cube: ToioCoreCube):
+        """异步停止cube移动"""
+        await cube.api.motor.motor_control(left=0, right=0)
+    
+    def get_collision_avoidance_status(self) -> Dict[str, Any]:
+        """获取避障系统状态"""
+        if not self._avoidance_enabled:
+            return {"enabled": False}
+        
+        status = {"enabled": True}
+        
+        if self._collision_avoidance:
+            status["collision_system"] = self._collision_avoidance.get_system_status()
+        
+        if self._position_tracker:
+            status["position_tracker"] = self._position_tracker.get_tracking_status()
+        
+        if self._path_planner:
+            status["path_planner"] = self._path_planner.get_planner_status()
+        
+        return status
+    
+    def enable_collision_avoidance(self, enable: bool = True):
+        """启用或禁用避障系统"""
+        if enable and not self._avoidance_enabled:
+            self._avoidance_enabled = True
+            self._setup_collision_avoidance()
+        elif not enable and self._avoidance_enabled:
+            self._avoidance_enabled = False
+            # 停止避障系统组件
+            if self._position_tracker:
+                self._position_tracker.stop_tracking()
+            if self._path_planner:
+                self._path_planner.stop_planner()
+            print("⚠️ 避障系统已禁用")
+    
+    def __del__(self):
+        """析构函数，清理资源"""
+        self._running = False
+        
+        # 停止避障系统
+        if self._avoidance_enabled:
+            if self._position_tracker:
+                self._position_tracker.stop_tracking()
+            if self._path_planner:
+                self._path_planner.stop_planner()
+        
+        # 清理toio连接
+        if self._event_loop and not self._event_loop.is_closed():
+            try:
+                asyncio.run_coroutine_threadsafe(self._cleanup_cubes(), self._event_loop)
+            except:
+                pass
+    
+    async def _cleanup_cubes(self):
+        """清理cube连接"""
+        for cube_state in self._cubes.values():
+            if cube_state.cube:
+                try:
+                    await cube_state.cube.disconnect()
+                except:
+                    pass

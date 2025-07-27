@@ -101,9 +101,9 @@ class CookingToolkit(BaseToolkit):
             # 2. 播放开始音效
             self.toio_controller.play_sound(cube_id, 2, 80)
             
-            # 3. 移动到原料位置
+            # 3. 移动到原料位置（使用安全移动）
             print(f"🚶 {robot_id}: 移动到原料位置 {ingredient_pos}")
-            success = self.toio_controller.move_to(cube_id, ingredient_pos[0], ingredient_pos[1])
+            success = self.toio_controller.safe_move_to(cube_id, ingredient_pos[0], ingredient_pos[1])
             
             if not success:
                 return {
@@ -186,7 +186,7 @@ class CookingToolkit(BaseToolkit):
             
             # 2. 移动到案板位置
             print(f"🚶 {robot_id}: 移动到案板位置 {cutting_board_pos}")
-            success = self.toio_controller.move_to(cube_id, cutting_board_pos[0], cutting_board_pos[1])
+            success = self.toio_controller.safe_move_to(cube_id, cutting_board_pos[0], cutting_board_pos[1])
             
             if not success:
                 return {
@@ -265,7 +265,7 @@ class CookingToolkit(BaseToolkit):
             
             # 2. 移动到灶台位置
             print(f"🚶 {robot_id}: 移动到灶台位置 {stove_pos}")
-            success = self.toio_controller.move_to(cube_id, stove_pos[0], stove_pos[1])
+            success = self.toio_controller.safe_move_to(cube_id, stove_pos[0], stove_pos[1])
             
             if not success:
                 return {
@@ -369,7 +369,7 @@ class CookingToolkit(BaseToolkit):
             
             # 2. 移动到交付窗口
             print(f"🚶 {robot_id}: 移动到交付窗口 {serve_pos}")
-            success = self.toio_controller.move_to(cube_id, serve_pos[0], serve_pos[1])
+            success = self.toio_controller.safe_move_to(cube_id, serve_pos[0], serve_pos[1])
             
             if not success:
                 return {

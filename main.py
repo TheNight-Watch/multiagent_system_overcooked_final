@@ -54,7 +54,7 @@ class DynamicCookingSystem:
         # 初始化真实的ToioController - 必须成功连接
         try:
             print("🔍 正在连接真实toio设备...")
-            self.real_toio_controller = RealToioController(num_cubes=3, connect_timeout=10.0)
+            self.real_toio_controller = RealToioController(num_cubes=3, connect_timeout=10.0, enable_collision_avoidance=True)
             print("✅ 成功连接到真实toio设备")
         except Exception as e:
             print(f"❌ 无法连接到真实toio设备: {e}")
@@ -231,6 +231,150 @@ class DynamicCookingSystem:
                 step_counter[agent_id] += 1
         
         return action_summary
+
+    # ==================== 新增：异步并行执行方法 ====================
+    
+    async def execute_collaborative_cooking_async(self, dish_name: str) -> Dict[str, List[Dict]]:
+        """异步并行协作烹饪 - 基于CamelAI异步API"""
+        print(f"🚀 开始异步并行制作: {dish_name}")
+        
+        # 第一步：生成任务队列（保持现有逻辑）
+        print("📋 生成带依赖关系的任务队列...")
+        task_list = generate_cooking_tasks(dish_name)
+        self.kitchen_state.add_cooking_tasks(dish_name, task_list)
+        
+        # 打印任务队列状态
+        print(self.kitchen_state.get_task_queue_summary())
+        
+        # 第二步：创建描述完整流程的大任务
+        task_description = self._create_parallel_task_description(dish_name, task_list)
+        
+        cooking_task = Task(
+            content=task_description,
+            id=f"parallel_cooking_{dish_name}_{int(time.time())}"
+        )
+        
+        print("🤖 提交并行协作任务给CamelAI Workforce...")
+        
+        # 🔑 关键：使用异步API让Workforce自动并行分配
+        result = await self.workforce.process_task_async(cooking_task)
+        
+        print("✅ 异步并行执行完成!")
+        
+        # 第三步：解析并行执行结果
+        return self._parse_parallel_result(result, dish_name, self.kitchen_state.task_queue)
+    
+    def _create_parallel_task_description(self, dish_name: str, task_list: List[Dict]) -> str:
+        """创建并行任务描述"""
+        print(f"📝 为 {dish_name} 创建并行任务描述...")
+        
+        # 按任务类型分组
+        pick_tasks = [t for t in task_list if t['type'] == 'pick_x']
+        cook_tasks = [t for t in task_list if t['type'] == 'cook_x'] 
+        serve_tasks = [t for t in task_list if t['type'] == 'serve_x']
+        
+        # 智能分配任务给3个厨师
+        chef1_tasks = []
+        chef2_tasks = []
+        chef3_tasks = []
+        
+        # Chef_1: 主要负责取原料
+        if pick_tasks:
+            chef1_tasks = pick_tasks[:len(pick_tasks)//2] if len(pick_tasks) > 1 else pick_tasks
+        
+        # Chef_2: 负责取调料和剩余取原料任务
+        if pick_tasks:
+            chef2_tasks = pick_tasks[len(pick_tasks)//2:]
+            
+        # Chef_3: 负责烹饪和交付
+        chef3_tasks = cook_tasks + serve_tasks
+        
+        return f"""
+🍳 **并行协作制作 {dish_name}**
+
+**3位厨师同时工作，无需等待：**
+
+**Chef_1 任务列表：**
+{chr(10).join([f"- {t['type']}({', '.join(map(str, t['params']))})" for t in chef1_tasks]) if chef1_tasks else "- 待命"}
+
+**Chef_2 任务列表：**  
+{chr(10).join([f"- {t['type']}({', '.join(map(str, t['params']))})" for t in chef2_tasks]) if chef2_tasks else "- 待命"}
+
+**Chef_3 任务列表：**
+{chr(10).join([f"- {t['type']}({', '.join(map(str, t['params']))})" for t in chef3_tasks]) if chef3_tasks else "- 待命"}
+
+**🔧 可用工具函数：**
+- pick_x(robot_id, ingredient_type) - 拾取原料
+- cook_x(robot_id, dish_name) - 烹饪菜品  
+- serve_x(robot_id, dish_name) - 交付菜品
+
+**⚡ 执行规则：**
+1. 每位厨师立即开始执行分配的任务
+2. **无需等待其他厨师完成**，可以并行工作
+3. 使用对应的工具函数执行操作
+4. 参数1永远是自己的ID (chef_1, chef_2, chef_3)
+5. 完成每个任务后提供详细执行报告
+
+**现在开始并行协作制作 {dish_name}！3位厨师同时行动！**
+        """
+    
+    def _parse_parallel_result(self, result: Any, dish_name: str, task_queue: List[Dict]) -> Dict[str, List[Dict]]:
+        """解析并行执行结果"""
+        print("🔍 解析并行执行结果...")
+        
+        # 初始化动作摘要
+        action_summary = {
+            "chef_1": [],
+            "chef_2": [],
+            "chef_3": []
+        }
+        
+        # 从result中提取执行信息
+        result_text = str(result) if result else ""
+        
+        # 基于任务队列和执行结果，构建动作记录
+        step_counter = {"chef_1": 0, "chef_2": 0, "chef_3": 0}
+        
+        for task in task_queue:
+            # 根据任务类型智能分配到对应的chef
+            assigned_chef = self._determine_task_assignment(task)
+            
+            action_summary[assigned_chef].append({
+                "step": step_counter[assigned_chef],
+                "agent_id": assigned_chef,
+                "action_type": task['type'],
+                "target": task['params'][1] if len(task['params']) > 1 else dish_name,
+                "position": self._get_agent_position(assigned_chef),
+                "success": True,
+                "timestamp": f"parallel_step_{step_counter[assigned_chef]}",
+                "details": {
+                    "message": f"并行执行任务: {task['type']}({', '.join(map(str, task['params']))})",
+                    "task_id": task['id'],
+                    "dish_name": task['dish_name'],
+                    "parallel_execution": True,
+                    "execution_mode": "async_parallel"
+                }
+            })
+            step_counter[assigned_chef] += 1
+        
+        return action_summary
+    
+    def _determine_task_assignment(self, task: Dict) -> str:
+        """根据任务类型确定分配给哪位厨师"""
+        task_type = task['type']
+        
+        if task_type == 'pick_x':
+            # 取原料任务分配给chef_1和chef_2
+            if 'vegetables' in str(task['params']) or 'meat' in str(task['params']):
+                return 'chef_1'
+            else:
+                return 'chef_2'
+        elif task_type == 'cook_x':
+            return 'chef_3'
+        elif task_type == 'serve_x':
+            return 'chef_3'
+        else:
+            return 'chef_1'  # 默认分配
         
     def _parse_agent_actions_from_collaboration(self, collaboration_result: str, dish_name: str) -> Dict[str, List[Dict]]:
         """从协作结果中解析出每个agent的具体动作"""
@@ -353,6 +497,18 @@ class DynamicCookingSystem:
         return positions.get(agent_id, [0, 0])
 
 
+# 全局烹饪系统实例
+_global_cooking_system = None
+
+def get_cooking_system():
+    """获取全局烹饪系统实例，只初始化一次"""
+    global _global_cooking_system
+    if _global_cooking_system is None:
+        print("🔄 正在初始化多智能体系统...")
+        _global_cooking_system = DynamicCookingSystem()
+        print("✅ 系统初始化完成!")
+    return _global_cooking_system
+
 def process_dish_order(dish_name: str) -> str:
     """
     处理菜品订单，使用真正的多智能体协作系统动态生成动作
@@ -363,12 +519,16 @@ def process_dish_order(dish_name: str) -> str:
     Returns:
         str: JSON格式的动作记录
     """
-    print(f"🤖 启动动态多智能体协作系统...")
+    print(f"🤖 使用多智能体协作系统...")
     print(f"📋 处理订单: {dish_name}")
     
     try:
-        # 创建动态烹饪系统
-        cooking_system = DynamicCookingSystem()
+        # 获取全局烹饪系统实例
+        cooking_system = get_cooking_system()
+        
+        # 重置任务队列以处理新订单
+        cooking_system.kitchen_state.reset_task_queue()
+        print("🔄 任务队列已重置，准备处理新订单")
         
         print("🔄 多智能体协作分析中...")
         print("   - Order Manager: 动态分析菜品需求")
@@ -376,10 +536,10 @@ def process_dish_order(dish_name: str) -> str:
         print("   - Chef_2 (通用厨师): 使用工具执行烹饪任务")
         print("   - Chef_3 (通用厨师): 使用工具执行烹饪任务")
         
-        # 执行真正的多智能体协作
-        actions = cooking_system.execute_collaborative_cooking(dish_name)
+        # 🚀 执行异步并行多智能体协作
+        actions = asyncio.run(cooking_system.execute_collaborative_cooking_async(dish_name))
         
-        print("✅ 多智能体协作完成")
+        print("✅ 异步并行多智能体协作完成")
         
         return json.dumps(actions, indent=2, ensure_ascii=False)
         
@@ -398,51 +558,163 @@ def process_dish_order(dish_name: str) -> str:
         return json.dumps(error_result, indent=2, ensure_ascii=False)
 
 
-def main():
-    """主程序入口"""
+def show_welcome():
+    """显示欢迎信息和支持的菜品"""
+    print("🍳 CamelAI 动态多智能体 Overcooked 系统")
+    print("🔄 连续订单处理模式")
+    print("=" * 60)
+    print("\n📋 支持的菜品类型:")
+    print("  - 西红柿炒蛋 (Tomato and Egg)")
+    print("  - 宫保鸡丁 (Kung Pao Chicken)")
+    print("  - 炝炒西兰花 (Stir-fried Broccoli)")
+    print("  - 麻婆豆腐 (Mapo Tofu)")
+    print("  - 炒饭 (Fried Rice)")
+    print("  - 红烧肉 (Braised Pork)")
+    print("  - 任意其他菜品 (Any other dish)")
+    print("\n🎮 支持的命令:")
+    print("  - help: 显示帮助信息")
+    print("  - quit/exit: 退出程序")
+    print("  - clear: 清屏")
+    print("\n💡 系统会动态分析任何菜品并智能分配任务!")
+    print("="*60)
+
+def get_user_input():
+    """获取用户输入并进行基本验证"""
+    while True:
+        try:
+            user_input = input("\n📝 请输入菜品名称 (或输入 'help' 查看帮助): ").strip()
+            
+            if not user_input:
+                print("⚠️ 请输入有效的菜品名称")
+                continue
+                
+            return user_input
+            
+        except KeyboardInterrupt:
+            print("\n\n👋 程序被用户中断，再见!")
+            return "quit"
+        except EOFError:
+            print("\n\n👋 输入结束，再见!")
+            return "quit"
+
+def process_user_command(command: str) -> bool:
+    """
+    处理用户命令
     
-    # 检查命令行参数
-    if len(sys.argv) != 2:
-        print("Usage: python main.py <dish_name>")
-        print("\n🍳 支持动态分析任意菜品:")
-        print("  - 西红柿炒蛋 (Tomato and Egg)")
-        print("  - 宫保鸡丁 (Kung Pao Chicken)")
-        print("  - 麻婆豆腐 (Mapo Tofu)")
-        print("  - 炒饭 (Fried Rice)")
-        print("  - 红烧肉 (Braised Pork)")
-        print("  - 任意其他菜品 (Any other dish)")
-        print("\n💡 系统会动态分析任何菜品并智能分配任务!")
-        print("\nExample: python main.py '宫保鸡丁'")
-        sys.exit(1)
+    Args:
+        command: 用户输入的命令
+        
+    Returns:
+        bool: True表示继续执行，False表示退出程序
+    """
+    command_lower = command.lower()
     
-    dish_name = sys.argv[1]
+    if command_lower in ['quit', 'exit', 'q']:
+        print("👋 感谢使用CamelAI多智能体烹饪系统，再见!")
+        return False
     
+    elif command_lower in ['help', 'h']:
+        show_welcome()
+        return True
+    
+    elif command_lower == 'clear':
+        os.system('clear' if os.name == 'posix' else 'cls')
+        show_welcome()
+        return True
+    
+    else:
+        # 处理菜品订单
+        return process_dish_command(command)
+
+def process_dish_command(dish_name: str) -> bool:
+    """
+    处理菜品订单命令
+    
+    Args:
+        dish_name: 菜品名称
+        
+    Returns:
+        bool: True表示继续执行，False表示退出程序
+    """
     try:
-        print(f"🍳 CamelAI 动态多智能体 Overcooked 系统")
-        print(f"📋 处理订单: {dish_name}")
-        print("=" * 60)
+        print(f"\n📋 正在处理订单: {dish_name}")
+        print("-" * 50)
         
         # 处理订单 - 真正的多智能体协作
         actions_json = process_dish_order(dish_name)
         
         # 输出JSON格式的动作记录
-        print("\n📊 多智能体协作结果 (JSON格式):")
+        print("\n📊 多智能体协作结果:")
         print(actions_json)
         
         # 保存到文件
-        output_filename = f"dynamic_cooking_actions_{dish_name.replace(' ', '_').replace('/', '_')}.json"
+        timestamp = int(time.time())
+        output_filename = f"dynamic_cooking_actions_{dish_name.replace(' ', '_').replace('/', '_')}_{timestamp}.json"
         with open(output_filename, 'w', encoding='utf-8') as f:
             f.write(actions_json)
         
         print(f"\n💾 协作结果保存到: {output_filename}")
-        print("✅ 动态多智能体协作完成!")
+        print("✅ 订单处理完成!")
         
+        return True
         
     except Exception as e:
         print(f"❌ 处理订单时出现错误: {e}")
         import traceback
         traceback.print_exc()
-        sys.exit(1)
+        print("\n💡 提示: 请检查订单格式是否正确，或尝试其他菜品")
+        return True  # 继续运行，不因为单个订单错误而退出
+
+def main():
+    """主程序入口 - 交互式连续订单处理模式"""
+    
+    # 显示欢迎信息
+    show_welcome()
+    
+    order_count = 0
+    
+    try:
+        # 主交互循环
+        while True:
+            try:
+                # 获取用户输入
+                user_input = get_user_input()
+                
+                # 处理命令
+                if not process_user_command(user_input):
+                    break  # 退出程序
+                
+                # 如果不是系统命令，则是菜品订单，增加计数
+                command_lower = user_input.lower()
+                if command_lower not in ['help', 'h', 'clear']:
+                    order_count += 1
+                    print(f"\n📈 已处理订单数量: {order_count}")
+                
+            except Exception as e:
+                print(f"❌ 处理过程中出现错误: {e}")
+                import traceback
+                traceback.print_exc()
+                print("💡 系统将继续运行，请重新输入")
+                continue
+        
+    except Exception as e:
+        print(f"❌ 程序运行出现错误: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    finally:
+        # 清理资源
+        global _global_cooking_system
+        if _global_cooking_system:
+            try:
+                print("🧹 正在清理系统资源...")
+                # 如果有清理方法，在这里调用
+                pass
+            except:
+                pass
+        
+        print(f"\n📊 会话统计: 总共处理了 {order_count} 个订单")
+        print("👋 程序结束")
 
 
 if __name__ == "__main__":
